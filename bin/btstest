@@ -1,0 +1,36 @@
+#!/bin/sh
+
+BTSINPUT=$*
+
+if [ -z "${BTSINPUT}" ]; then
+	echo "usage: $0 <input.bts>" >&2
+	exit 1
+fi
+
+JSONFILE=$(mktemp)
+BTSOUTPUT=$(mktemp)
+HCIOUTPUT=$(mktemp)
+
+if ! btsdump.py ${BTSINPUT} > ${JSONFILE}; then
+	echo "error: failed to dump ${BTSINPUT}" >&2
+	exit 1
+fi
+
+if ! btsgen.py ${JSONFILE} > ${BTSOUTPUT}; then
+	echo "error: failed to encode ${JSONFILE}" >&2
+	exit 1
+fi
+
+if ! cmp ${BTSINPUT} ${BTSOUTPUT}; then
+	echo "error: the output BTS differs from input BTS" >&2
+	exit 1
+fi
+
+if ! hcidump.py ${BTSINPUT} > ${HCIOUTPUT}; then
+	echo "error: failed to generate HCI dump of ${BTSINPUT}" >&2
+	exit 1
+fi
+
+rm -f ${JSONFILE} ${BTSOUTPUT} ${HCIOUTPUT}
+
+echo "All tests passed!"
